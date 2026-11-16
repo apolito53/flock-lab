@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Flock Lab: experiments in emergent swarm behavior, autonomous agents, and 3D particle systems.">
+<title>Flock Lab</title>
+<style>
+:root{color-scheme:dark;background:#090c12;color:#e8edf5;font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -15%,#26364c 0,transparent 52rem),#090c12}
+main{width:min(920px,calc(100% - 36px));margin:auto;padding:12vh 0 64px}
+.kicker{color:#9eafc5;font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+h1{font-size:clamp(3.2rem,9vw,6.8rem);letter-spacing:-.075em;line-height:.95;font-weight:650;margin:18px 0}
+.intro{max-width:620px;color:#aab6c7;font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:48px}
+.card{display:block;min-height:220px;padding:24px;border:1px solid #354154;background:#111823;border-radius:8px;color:inherit;text-decoration:none;transition:transform .18s,border-color .18s}
+.card:hover{transform:translateY(-3px);border-color:#8297b5}
+.card .tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8fa4c0}
+.card h2{font-size:24px;letter-spacing:-.04em;margin:18px 0 8px}
+.card p{font-size:14px;color:#9eacbf;margin:0}
+.card .go{display:block;margin-top:24px;color:#dbe6f4;font-size:13px}
+footer{margin-top:48px;color:#738198;font-size:12px}
+footer a{color:#aebdd1}
+@media(max-width:620px){main{padding-top:9vh}.grid{grid-template-columns:1fr}.card{min-height:180px}}
+</style>
+</head>
+<body>
+<main>
+<div class="kicker">An experimental home for collective motion</div>
+<h1>Flock Lab</h1>
+<p class="intro">Small local rules. Large collective behavior. A growing playground for autonomous swarms, emergent movement, and eventually, the third dimension.</p>
+<section class="grid" aria-label="Experiments">
+<a class="card" href="/experiments/2d-flocking/">
+<span class="tag">Experiment 01 · Available now</span>
+<h2>2D Flocking &amp; Leadership</h2>
+<p>Explore alignment, cohesion, separation, elected leaders, gravitational attraction, and the difference between a leader's momentum and its followers' inertia.</p>
+<span class="go">Enter the sandbox →</span>
+</a>
+<a class="card" href="https://github.com/apolito53/web-gpu-lab">
+<span class="tag">Technical reference · WebGPU</span>
+<h2>Particle Lab</h2>
+<p>Raw WebGPU compute, WGSL, storage buffers, 3D projection, trails, profiling, and large particle workloads. A foundation to learn from as the experiments move into 3D.</p>
+<span class="go">Explore the GPU lab →</span>
+</a>
+</section>
+<footer>Experiments are preserved as working instruments, not just screenshots. <a href="https://github.com/apolito53/flock-lab">Source repository</a>.</footer>
+</main>
+</body>
+</html>

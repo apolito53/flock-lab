@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="A bare little flocking sandbox for exploring local rules, elected leaders, leader gravity, and inertial movement.">
+<title>Flock Lab · 2D Flocking &amp; Leadership</title>
+<style>
+:root{color-scheme:dark;background:#0b0d12;color:#e7eaf0;font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:#0b0d12;color:#e7eaf0}
+main{width:min(1120px,calc(100% - 32px));margin:0 auto;padding:24px 0 54px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:0 0 18px}
+.back{color:#9da8b8;text-decoration:none;font-size:13px}
+.back:hover{color:#fff}
+h1{font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.05;letter-spacing:-.045em;margin:8px 0 4px;font-weight:650}
+.sub{margin:0;color:#9da8b8;font-size:14px}
+.header-note{color:#778292;font-size:12px;text-align:right;max-width:270px}
+.field-wrap{width:min(100%,960px);margin:0 auto;background:#080a0e;border:1px solid #303744;border-radius:5px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;aspect-ratio:1/1;touch-action:none;cursor:crosshair}
+.status{display:flex;justify-content:space-between;gap:12px;padding:9px 12px;border-top:1px solid #252c36;color:#8e99a9;font-size:11px;letter-spacing:.08em;text-transform:uppercase;flex-wrap:wrap}
+.status strong{color:#cdd5e0;font-weight:550}
+.section-label{width:min(100%,960px);margin:17px auto 8px;color:#8e99a9;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.controls{width:min(100%,960px);margin:0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.lead-controls{grid-template-columns:repeat(6,minmax(0,1fr))}
+.control{min-width:0;padding:13px 14px 12px;border:1px solid #29313d;border-radius:5px;background:#11151c}
+.control label{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:12px;color:#cdd5e0}
+output{font-variant-numeric:tabular-nums;color:#fff;font-size:12px}
+input[type=range]{display:block;width:100%;margin:13px 0 8px;accent-color:#b8c6d8;cursor:pointer}
+select{display:block;width:100%;margin:11px 0 8px;padding:8px 9px;border:1px solid #394453;border-radius:4px;background:#171d26;color:#e4eaf2;font:inherit;font-size:12px}
+small{display:block;min-height:30px;color:#778292;font-size:11px;line-height:1.35}
+.actions{width:min(100%,960px);margin:12px auto 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.actions>div{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.toggle-control{display:inline-flex;align-items:center;gap:7px;margin-left:8px;color:#9da8b8;font-size:12px;white-space:nowrap;cursor:pointer}
+.toggle-control input{width:15px;height:15px;margin:0;accent-color:#b8c6d8;cursor:pointer}
+.control-toggle{display:flex;align-items:center;gap:8px;margin:13px 0 8px;color:#d5dde8;font-size:12px;cursor:pointer}
+.control-toggle input{width:15px;height:15px;margin:0;accent-color:#b8c6d8;cursor:pointer}
+button{border:1px solid #394453;background:#171d26;color:#e4eaf2;padding:9px 13px;border-radius:4px;font:inherit;font-size:12px;cursor:pointer}
+button:hover{background:#242d39;border-color:#667487}
+button:disabled{opacity:.38;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible,canvas:focus-visible{outline:2px solid #b8c6d8;outline-offset:3px}
+button.primary{background:#d8e0ea;color:#10151c;border-color:#d8e0ea}
+button.primary:hover{background:#fff}
+.hint{color:#7f8a9a;font-size:12px}
+.readout{width:min(100%,960px);margin:12px auto 0;display:flex;justify-content:flex-end;gap:24px;color:#7f8a9a;font-size:11px;text-transform:uppercase;letter-spacing:.08em;flex-wrap:wrap}
+.readout strong{color:#d5dde8;font-weight:550;font-variant-numeric:tabular-nums}
+@media(max-width:850px){.controls{grid-template-columns:repeat(3,minmax(0,1fr))}.lead-controls{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){main{padding-top:16px}.header-note{display:none}.controls,.lead-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.control{padding:11px}.status{font-size:9px}.readout{justify-content:space-between;gap:8px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <a class="back" href="/">← Flock Lab home</a>
+    <h1>The Flock Lab</h1>
+    <p class="sub">A hundred and sixty dots. Local rules. Leadership with gravity.</p>
+  </div>
+  <div class="header-note">The faint dashed ring marks the leader’s gravity radius. Drag the character marker to move the destination.</div>
+</header>
+<section class="field-wrap" aria-label="Flocking simulation">
+  <canvas id="field" width="1200" height="1200" tabindex="0" aria-label="A square field containing autonomous dots moving according to local flocking rules. A marked character position can be dragged to change the horde's destination."></canvas>
+  <div class="status"><span id="state"><strong>RUNNING</strong> · 160 AGENTS</span><span id="leader-status">NO LEADER · BASELINE</span></div>
+</section>
+<div class="section-label">Local behavior</div>
+<section class="controls" aria-label="Flocking rule controls">
+  <div class="control">
+    <label for="alignment"><span>Alignment</span><output id="alignment-out">68%</output></label>
+    <input id="alignment" type="range" min="0" max="100" value="68">
+    <small>Match the direction of nearby dots</small>
+  </div>
+  <div class="control">
+    <label for="cohesion"><span>Cohesion</span><output id="cohesion-out">68%</output></label>
+    <input id="cohesion" type="range" min="0" max="100" value="68">
+    <small>Move toward the local group center</small>
+  </div>
+  <div class="control">
+    <label for="separation"><span>Separation</span><output id="separation-out">72%</output></label>
+    <input id="separation" type="range" min="0" max="100" value="72">
+    <small>Keep a little personal space</small>
+  </div>
+  <div class="control">
+    <label for="population"><span>Population</span><output id="population-out">160</output></label>
+    <input id="population" type="range" min="20" max="400" step="10" value="160">
+    <small>Change the number of independent agents</small>
+  </div>
+  <div class="control">
+    <label for="wind"><span>Crosswind</span><output id="wind-out">still</output></label>
+    <input id="wind" type="range" min="-100" max="100" value="0">
+    <small>Apply a shared horizontal influence</small>
+  </div>
+</section>
+<div class="section-label">Horde leadership</div>
+<section class="controls lead-controls" aria-label="Leader behavior controls">
+  <div class="control">
+    <label for="leader-mode"><span>Leader election</span></label>
+    <select id="leader-mode">
+      <option value="none">None · baseline</option>
+      <option value="random">Random agent</option>
+      <option value="vanguard">Vanguard · nearest to character</option>
+      <option value="director">Director · weighted selection</option>
+    </select>
+    <small id="leader-explanation">No agent receives special influence. The original flock is the control group.</small>
+  </div>
+  <div class="control">
+    <label for="follow-style"><span>Follower behavior</span></label>
+    <select id="follow-style">
+      <option value="heading">Shared heading</option>
+      <option value="wake">Follow the leader's wake</option>
+    </select>
+    <small id="follow-explanation">Followers blend the leader's movement direction with their local neighbor rules.</small>
+  </div>
+  <div class="control">
+    <label for="leader-influence"><span>Directional influence</span><output id="leader-influence-out">70%</output></label>
+    <input id="leader-influence" type="range" min="0" max="100" value="70">
+    <small>How strongly heading or wake behavior shapes followers</small>
+  </div>
+  <div class="control">
+    <label for="leader-gravity"><span>Leader gravity</span><output id="leader-gravity-out">55%</output></label>
+    <input id="leader-gravity" type="range" min="0" max="100" value="55">
+    <small>Pull followers toward the leader's position</small>
+  </div>
+  <div class="control">
+    <label for="gravity-radius"><span>Gravity radius</span><output id="gravity-radius-out">760 px</output></label>
+    <input id="gravity-radius" type="range" min="150" max="1100" step="25" value="760">
+    <small>How far the leader's pull reaches</small>
+  </div>
+  <div class="control">
+    <label for="leader-momentum"><span>Leader momentum</span></label>
+    <label class="control-toggle" for="leader-momentum"><input id="leader-momentum" type="checkbox" checked><span>Enabled</span></label>
+    <small>Disable to let only the leader steer directly toward its objective</small>
+  </div>
+</section>
+<div class="actions">
+  <div>
+    <button id="scatter" class="primary" type="button">Startle the flock</button>
+    <button id="new" type="button">New flock</button>
+    <button id="reelect" type="button" disabled>Re-elect leader</button>
+    <button id="pause" type="button" aria-pressed="false">Pause</button>
+    <label class="toggle-control" for="cursor-repulsion"><input id="cursor-repulsion" type="checkbox" checked><span>Cursor repulsion</span></label>
+  </div>
+  <span class="hint">Drag the ringed leader to perturb its movement. Drag the character marker to redirect the horde.</span>
+</div>
+<div class="readout">
+  <span>Directional coherence <strong id="coherence">0.00</strong></span>
+  <span>Leader <strong id="leader-number">none</strong></span>
+  <span>Agents <strong id="count">160</strong></span>
+</div>
+</main>
+<script>
+(()=>{
+"use strict";
+const canvas=document.getElementById("field"),ctx=canvas.getContext("2d");
+if(!ctx)return;
+const W=1200,H=1200,TAU=Math.PI*2,NEIGHBOR_RADIUS_SQ=15000,PERSONAL_RADIUS_SQ=1400;
+const $=id=>document.getElementById(id);
+const values={alignment:68,cohesion:68,separation:72,population:160,wind:0,leaderMode:"none",followStyle:"heading",leaderInfluence:70,leaderGravity:55,gravityRadius:760,cursorRepulsion:true,leaderMomentum:true};
+let seed=119053,birds=[],last=0,time=0,frame=0,running=true,leaderId=null,electionClock=0;
+const player={x:1000,y:600};
+const pointer={x:0,y:0,active:false};
+let draggingPlayer=false,draggingLeader=false;
+function rnd(){seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;}
+function mix(a,b,t){return a+(b-a)*t;}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function makeBird(i){
+ const a=rnd()*TAU,r=Math.sqrt(rnd());
+ const x=mix(430,770,rnd())+Math.cos(a)*155*r;
+ const y=mix(480,720,rnd())+Math.sin(a)*83*r;
+ const vx=2.4+(rnd()-.5)*1.8;
+ const vy=(rnd()-.5)*2;
+ return {
+  x,y,vx,vy,
+  cruiseSpeed:clamp(Math.hypot(vx,vy),1.55,3.9),
+  startleX:0,startleY:0,
+  phase:rnd()*TAU,
+  size:.8+rnd()*.5,
+  id:i
+ };
+}
+function modeName(){
+ return values.leaderMode==="random"?"RANDOM":values.leaderMode==="vanguard"?"VANGUARD":values.leaderMode==="director"?"DIRECTOR":"BASELINE";
+}
+function updateStatus(){
+ const leader=birds.find(b=>b.id===leaderId);
+ $("state").innerHTML="<strong>"+(running?"RUNNING":"PAUSED")+"</strong> · "+birds.length+" AGENTS";
+ $("leader-status").textContent=leader?("LEADER #"+(leader.id+1)+" · "+modeName()+(values.leaderMomentum?"":" · DIRECT")):"NO LEADER · BASELINE";
+ $("leader-number").textContent=leader?("#"+(leader.id+1)):"none";
+ $("reelect").disabled=values.leaderMode==="none"||birds.length===0;
+ $("leader-momentum").disabled=!leader;
+}
+function directorScore(candidate){
+ const dx=player.x-candidate.x,dy=player.y-candidate.y,distance=Math.hypot(dx,dy);
+ const speed=Math.hypot(candidate.vx,candidate.vy);
+ const toward=distance>0&&speed>0?clamp(((candidate.vx/speed)*(dx/distance)+(candidate.vy/speed)*(dy/distance)+1)*.5,0,1):0;
+ let neighbors=0;
+ for(const other of birds){
+  if(other.id===candidate.id)continue;
+  const x=other.x-candidate.x,y=other.y-candidate.y;
+  if(x*x+y*y<NEIGHBOR_RADIUS_SQ)neighbors++;
+ }
+ const support=clamp(neighbors/10,0,1);
+ const proximity=1-clamp(distance/Math.hypot(W,H),0,1);
+ return proximity*.5+toward*.35+support*.15;
+}
+function electLeader(force){
+ if(values.leaderMode==="none"||!birds.length){leaderId=null;updateStatus();return;}
+ const current=birds.find(b=>b.id===leaderId)||null;
+ if(values.leaderMode==="random"){
+  if(!current||force){
+   let candidate=birds[Math.floor(rnd()*birds.length)];
+   if(birds.length>1&&candidate.id===leaderId)candidate=birds[(candidate.id+1+Math.floor(rnd()*(birds.length-1)))%birds.length];
+   leaderId=candidate.id;
+  }
+ }else if(values.leaderMode==="vanguard"){
+  let best=birds[0],bestDistance=Infinity;
+  for(const b of birds){
+   const d=(b.x-player.x)*(b.x-player.x)+(b.y-player.y)*(b.y-player.y);
+   if(d<bestDistance){bestDistance=d;best=b;}
+  }
+  const currentDistance=current?(current.x-player.x)*(current.x-player.x)+(current.y-player.y)*(current.y-player.y):Infinity;
+  if(force||!current||Math.sqrt(currentDistance)-Math.sqrt(bestDistance)>55)leaderId=best.id;
+ }else if(values.leaderMode==="director"){
+  let best=birds[0],bestScore=-Infinity;
+  for(const b of birds){const score=directorScore(b);if(score>bestScore){bestScore=score;best=b;}}
+  const currentScore=current?directorScore(current):-Infinity;
+  if(force||!current||bestScore>currentScore+.045)leaderId=best.id;
+ }
+ updateStatus();
+}
+function initialize(){
+ birds=Array.from({length:values.population},(_,i)=>makeBird(i));
+ leaderId=null;electionClock=0;
+ if(values.leaderMode!=="none")electLeader(true);
+ $("count").textContent=String(birds.length);
+ updateStatus();
+}
+function report(){
+ for(const name of ["alignment","cohesion","separation"]){$(name+"-out").textContent=values[name]+"%";}
+ $("population-out").textContent=String(values.population);
+ $("wind-out").textContent=values.wind===0?"still":Math.abs(values.wind)+"% "+(values.wind>0?"east":"west");
+ $("leader-influence-out").textContent=values.leaderInfluence+"%";
+ $("leader-gravity-out").textContent=values.leaderGravity+"%";
+ $("gravity-radius-out").textContent=values.gravityRadius+" px";
+ $("leader-explanation").textContent=values.leaderMode==="none"?"No agent receives special influence. The original flock is the control group.":values.leaderMode==="random"?"One randomly chosen agent becomes the directional anchor. Re-elect to choose another.":values.leaderMode==="vanguard"?"The agent nearest the character is the vanguard. It changes only when another gets meaningfully closer.":"The Director weighs proximity, heading toward the character, and nearby group support.";
+ $("follow-explanation").textContent=values.followStyle==="heading"?"Followers blend the leader's movement direction with their local neighbor rules.":"Followers are gently drawn toward a broad, offset wake behind the leader, retaining their lateral spacing.";
+}
+for(const name of ["alignment","cohesion","separation","wind"]){
+ $(name).addEventListener("input",e=>{values[name]=Number(e.target.value);report();});
+}
+$("population").addEventListener("input",e=>{$("population-out").textContent=e.target.value;});
+$("population").addEventListener("change",e=>{values.population=Number(e.target.value);initialize();readAgreement();});
+$("leader-mode").addEventListener("change",e=>{
+ values.leaderMode=e.target.value;electionClock=0;electLeader(true);report();
+});
+$("follow-style").addEventListener("change",e=>{values.followStyle=e.target.value;report();});
+$("leader-influence").addEventListener("input",e=>{values.leaderInfluence=Number(e.target.value);report();});
+$("leader-gravity").addEventListener("input",e=>{values.leaderGravity=Number(e.target.value);report();});
+$("gravity-radius").addEventListener("input",e=>{values.gravityRadius=Number(e.target.value);report();});
+$("cursor-repulsion").addEventListener("change",e=>{values.cursorRepulsion=e.target.checked;});
+$("leader-momentum").addEventListener("change",e=>{values.leaderMomentum=e.target.checked;updateStatus();});
+report();
+initialize();
+function scatter(){
+ let cx=0,cy=0;
+ for(const b of birds){cx+=b.x;cy+=b.y;}
+ cx/=birds.length;cy/=birds.length;
+ for(const b of birds){
+  const a=Math.atan2(b.y-cy,b.x-cx)+(rnd()-.5)*.85;
+  const force=3.2+rnd()*2.4;
+  if(b.id===leaderId&&!values.leaderMomentum){
+   b.startleX+=Math.cos(a)*force;b.startleY+=Math.sin(a)*force;
+  }else{
+   b.vx+=Math.cos(a)*force;b.vy+=Math.sin(a)*force;
+  }
+ }
+}
+$("scatter").addEventListener("click",scatter);
+$("new").addEventListener("click",()=>{seed=(seed+7919)>>>0;initialize();readAgreement();});
+$("reelect").addEventListener("click",()=>{electLeader(true);});
+$("pause").addEventListener("click",()=>{
+ running=!running;
+ $("pause").textContent=running?"Pause":"Resume";
+ $("pause").setAttribute("aria-pressed",String(!running));
+ updateStatus();
+});
+function canvasPoint(e){
+ const r=canvas.getBoundingClientRect();
+ return {x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};
+}
+function pointerMove(e){
+ const p=canvasPoint(e);
+ if(draggingPlayer){player.x=clamp(p.x,35,W-35);player.y=clamp(p.y,35,H-35);pointer.active=false;return;}
+ if(draggingLeader){
+  const leader=birds.find(b=>b.id===leaderId);
+  if(leader){leader.x=clamp(p.x,35,W-35);leader.y=clamp(p.y,35,H-35);}
+  pointer.active=false;return;
+ }
+ pointer.x=p.x;pointer.y=p.y;
+ pointer.active=Math.hypot(p.x-player.x,p.y-player.y)>27;
+}
+canvas.addEventListener("pointermove",pointerMove);
+canvas.addEventListener("pointerdown",e=>{
+ const p=canvasPoint(e);
+ const leader=birds.find(b=>b.id===leaderId);
+ if(Math.hypot(p.x-player.x,p.y-player.y)<36){draggingPlayer=true;}
+ else if(leader&&Math.hypot(p.x-leader.x,p.y-leader.y)<30){draggingLeader=true;}
+ pointerMove(e);
+ try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+});
+function pointerUp(){
+ const movedPlayer=draggingPlayer;
+ draggingPlayer=false;draggingLeader=false;pointer.active=false;
+ if(movedPlayer&&values.leaderMode!=="none")electLeader(false);
+}
+canvas.addEventListener("pointerup",pointerUp);
+canvas.addEventListener("pointercancel",pointerUp);
+canvas.addEventListener("pointerleave",()=>{if(!draggingPlayer&&!draggingLeader)pointer.active=false;});
+function updateElection(dt){
+ if(values.leaderMode==="none"||values.leaderMode==="random")return;
+ electionClock+=dt*16.667;
+ if(electionClock>=450){electionClock=0;electLeader(false);}
+}
+function applyLeaderBehavior(b,leader){
+ if(!leader)return {x:0,y:0};
+ const strength=values.leaderInfluence/100;
+ if(b.id===leader.id){
+  const dx=player.x-b.x,dy=player.y-b.y,d=Math.hypot(dx,dy);
+  if(d<2)return {x:0,y:0};
+  const desiredSpeed=3.65;
+  return {x:(dx/d*desiredSpeed-b.vx)*.055,y:(dy/d*desiredSpeed-b.vy)*.055};
+ }
+ if(strength<=0)return {x:0,y:0};
+ const leaderDistance=Math.hypot(leader.x-b.x,leader.y-b.y);
+ const rangeWeight=clamp(1-leaderDistance/900,0,1)*strength;
+ if(values.followStyle==="heading"){
+  return {x:(leader.vx-b.vx)*.055*rangeWeight,y:(leader.vy-b.vy)*.055*rangeWeight};
+ }
+ const speed=Math.hypot(leader.vx,leader.vy);
+ if(speed<.001)return {x:0,y:0};
+ const dirX=leader.vx/speed,dirY=leader.vy/speed;
+ const perpX=-dirY,perpY=dirX;
+ const relX=b.x-leader.x,relY=b.y-leader.y;
+ const lateral=clamp(relX*perpX+relY*perpY,-220,220);
+ const longitudinal=relX*dirX+relY*dirY;
+ const desiredLongitudinal=clamp(longitudinal,-390,-95);
+ const desiredLateral=lateral*.78;
+ const targetX=leader.x+dirX*desiredLongitudinal+perpX*desiredLateral;
+ const targetY=leader.y+dirY*desiredLongitudinal+perpY*desiredLateral;
+ return {x:(targetX-b.x)*.00062*rangeWeight,y:(targetY-b.y)*.00062*rangeWeight};
+}
+function leaderGravityFor(b,leader){
+ if(!leader||b.id===leader.id||values.leaderGravity<=0)return {x:0,y:0};
+ const dx=leader.x-b.x,dy=leader.y-b.y;
+ const distance=Math.hypot(dx,dy),radius=values.gravityRadius;
+ if(distance<=1||distance>=radius)return {x:0,y:0};
+ const t=distance/radius;
+ const smoothFalloff=1-(t*t*(3-2*t));
+ const centerSoftening=clamp(distance/70,0,1);
+ const magnitude=(values.leaderGravity/100)*.42*smoothFalloff*centerSoftening;
+ return {x:dx/distance*magnitude,y:dy/distance*magnitude};
+}
+function simulation(dt){
+ updateElection(dt);
+ const leader=birds.find(b=>b.id===leaderId)||null;
+ const nextVelocity=new Array(birds.length);
+ const alignment=values.alignment/100,cohesion=values.cohesion/100;
+ const space=values.separation/100,wind=values.wind/100;
+ for(let i=0;i<birds.length;i++){
+  const b=birds[i],isDirectLeader=!!leader&&b.id===leader.id&&!values.leaderMomentum;
+  let avx=0,avy=0,cx=0,cy=0,avoidX=0,avoidY=0,neighbors=0;
+  for(let j=0;j<birds.length;j++){
+   if(i===j)continue;
+   const o=birds[j],dx=o.x-b.x,dy=o.y-b.y,d2=dx*dx+dy*dy;
+   if(d2<NEIGHBOR_RADIUS_SQ){
+    avx+=o.vx;avy+=o.vy;cx+=o.x;cy+=o.y;neighbors++;
+    if(d2<PERSONAL_RADIUS_SQ&&d2>1){
+     const force=(PERSONAL_RADIUS_SQ-d2)/PERSONAL_RADIUS_SQ;
+     avoidX-=dx*force/Math.sqrt(d2);avoidY-=dy*force/Math.sqrt(d2);
+    }
+   }
+  }
+  let ax=0,ay=0,intentX=0,intentY=0;
+  if(neighbors){
+   avx/=neighbors;avy/=neighbors;cx/=neighbors;cy/=neighbors;
+   ax+=(avx-b.vx)*.038*alignment+(cx-b.x)*.0015*cohesion;
+   ay+=(avy-b.vy)*.038*alignment+(cy-b.y)*.0015*cohesion;
+   if(isDirectLeader){
+    const averageSpeed=Math.hypot(avx,avy);
+    if(averageSpeed>.001){
+     intentX+=(avx/averageSpeed)*alignment;
+     intentY+=(avy/averageSpeed)*alignment;
+    }
+    const centerX=cx-b.x,centerY=cy-b.y,centerDistance=Math.hypot(centerX,centerY);
+    if(centerDistance>.001){
+     intentX+=(centerX/centerDistance)*cohesion;
+     intentY+=(centerY/centerDistance)*cohesion;
+    }
+   }
+  }
+  ax+=avoidX*(.045+space*.22);
+  ay+=avoidY*(.045+space*.22);
+  if(isDirectLeader){
+   intentX+=avoidX*(.35+space*.65);
+   intentY+=avoidY*(.35+space*.65);
+  }
+  ax+=wind*.046+.006*Math.sin(time*.001+b.phase);
+  ay+=.008*Math.sin(time*.0009+b.id*.42);
+  if(isDirectLeader){
+   intentX+=wind*.22+.025*Math.sin(time*.001+b.phase);
+   intentY+=.025*Math.sin(time*.0009+b.id*.42);
+   const goalX=player.x-b.x,goalY=player.y-b.y,goalDistance=Math.hypot(goalX,goalY);
+   if(goalDistance>1){intentX+=goalX/goalDistance*1.15;intentY+=goalY/goalDistance*1.15;}
+   if(b.x<95)intentX+=clamp((95-b.x)/95,0,1)*1.1;
+   if(b.x>1105)intentX-=clamp((b.x-1105)/95,0,1)*1.1;
+   if(b.y<95)intentY+=clamp((95-b.y)/95,0,1)*1.1;
+   if(b.y>1105)intentY-=clamp((b.y-1105)/95,0,1)*1.1;
+   if(values.cursorRepulsion&&pointer.active){
+    const dx=b.x-pointer.x,dy=b.y-pointer.y,d2=dx*dx+dy*dy;
+    if(d2<23000&&d2>1){
+     const f=(23000-d2)/23000*.75,len=Math.sqrt(d2);
+     intentX+=dx/len*f;intentY+=dy/len*f;
+    }
+   }
+   intentX+=b.startleX*.72;intentY+=b.startleY*.72;
+   b.startleX*=.86;b.startleY*=.86;
+   let desiredLength=Math.hypot(intentX,intentY);
+   if(desiredLength<.0001){
+    intentX=goalDistance>1?goalX/goalDistance:Math.cos(b.phase);
+    intentY=goalDistance>1?goalY/goalDistance:Math.sin(b.phase);
+    desiredLength=1;
+   }
+   const speed=b.cruiseSpeed||3;
+   nextVelocity[i]=[intentX/desiredLength*speed,intentY/desiredLength*speed];
+  }else{
+   const leadership=applyLeaderBehavior(b,leader);
+   ax+=leadership.x;ay+=leadership.y;
+   const gravity=leaderGravityFor(b,leader);
+   ax+=gravity.x;ay+=gravity.y;
+   if(b.x<95)ax+=(95-b.x)*.004;
+   if(b.x>1105)ax-=(b.x-1105)*.004;
+   if(b.y<95)ay+=(95-b.y)*.004;
+   if(b.y>1105)ay-=(b.y-1105)*.004;
+   if(values.cursorRepulsion&&pointer.active){
+    const dx=b.x-pointer.x,dy=b.y-pointer.y,d2=dx*dx+dy*dy;
+    if(d2<23000&&d2>1){
+     const f=(23000-d2)/23000*.75,len=Math.sqrt(d2);
+     ax+=dx/len*f;ay+=dy/len*f;
+    }
+   }
+   let vx=b.vx+ax*dt,vy=b.vy+ay*dt;
+   const speed=Math.hypot(vx,vy),max=3.9,min=1.55;
+   if(speed>max){vx*=max/speed;vy*=max/speed;}
+   else if(speed<min){const d=min/Math.max(speed,.001);vx*=d;vy*=d;}
+   b.startleX=0;b.startleY=0;
+   nextVelocity[i]=[vx,vy];
+  }
+ }
+ for(let i=0;i<birds.length;i++){
+  const b=birds[i];
+  b.vx=nextVelocity[i][0];b.vy=nextVelocity[i][1];
+  b.x+=b.vx*dt;b.y+=b.vy*dt;
+ }
+}
+function draw(){
+ ctx.fillStyle="#0b0d12";ctx.fillRect(0,0,W,H);
+ const leader=birds.find(b=>b.id===leaderId)||null;
+ if(leader&&values.leaderGravity>0){
+  ctx.save();
+  ctx.strokeStyle="rgba(241,201,140,.16)";
+  ctx.lineWidth=1.5;
+  ctx.setLineDash([8,11]);
+  ctx.beginPath();ctx.arc(leader.x,leader.y,values.gravityRadius,0,TAU);ctx.stroke();
+  ctx.restore();
+ }
+ ctx.fillStyle="#e5eaf1";
+ for(const b of birds){
+  if(leader&&b.id===leader.id)continue;
+  ctx.beginPath();ctx.arc(b.x,b.y,1.8+b.size*.8,0,TAU);ctx.fill();
+ }
+ if(leader){
+  ctx.fillStyle="#f1c98c";ctx.beginPath();ctx.arc(leader.x,leader.y,5.5,0,TAU);ctx.fill();
+  ctx.strokeStyle="rgba(241,201,140,.8)";ctx.lineWidth=2;ctx.beginPath();ctx.arc(leader.x,leader.y,13,0,TAU);ctx.stroke();
+ }
+ ctx.strokeStyle="rgba(135,178,213,.9)";ctx.lineWidth=2;
+ ctx.beginPath();ctx.arc(player.x,player.y,15,0,TAU);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(player.x-22,player.y);ctx.lineTo(player.x+22,player.y);ctx.moveTo(player.x,player.y-22);ctx.lineTo(player.x,player.y+22);ctx.stroke();
+ ctx.fillStyle="rgba(135,178,213,.95)";ctx.font="15px ui-sans-serif,system-ui,sans-serif";
+ ctx.fillText("CHARACTER",player.x+23,player.y-18);
+}
+function readAgreement(){
+ if(!birds.length)return;
+ let sx=0,sy=0;
+ for(const b of birds){
+  const speed=Math.hypot(b.vx,b.vy);
+  sx+=b.vx/speed;sy+=b.vy/speed;
+ }
+ $("coherence").textContent=(Math.hypot(sx,sy)/birds.length).toFixed(2);
+}
+function animate(now){
+ const dt=Math.min(1.5,Math.max(.1,(now-(last||now))/16.667));
+ last=now;
+ if(running){
+  time+=dt*16.667;simulation(dt);
+  if(frame++%20===0)readAgreement();
+ }
+ draw();
+ requestAnimationFrame(animate);
+}
+document.addEventListener("visibilitychange",()=>{last=0;});
+if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+ running=false;$("pause").textContent="Resume";$("pause").setAttribute("aria-pressed","true");
+}
+updateStatus();readAgreement();requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
