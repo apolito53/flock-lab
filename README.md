@@ -2,13 +2,17 @@
 
 **The canonical home for our swarm-behavior experiments, from 2D flocking to 3D autonomous systems.**
 
-Flock Lab is a place to investigate how many independent agents can produce coherent, expressive collective motion through local interactions. The experiments begin with Reynolds-style flocking, then add elected leaders, leader gravity, environmental influences, alternative movement models, and eventually full 3D simulation.
+Flock Lab is a place to investigate how many independent agents can produce coherent, expressive collective motion through local interactions. The experiments begin with Reynolds-style flocking, then add elected leaders, leader gravity, environmental influences, alternative movement models, and full 3D simulation.
 
-## Current experiment
+## Current experiments
+
+### 3D Swarm Observatory
+
+[Enter the 3D experiment](./experiments/3d-flocking/). The observation camera orbits, pans, and zooms around autonomous XYZ boids. Top and side views use orthographic projection. A single leader flies a climbing figure-eight. Its spherical gravity has adjustable strength and range. Disable leadership for a local-rules baseline, or disable only the leader’s momentum to compare its steering. Pause, scatter, replay the seed, or inspect world-space trails and the live heading agreement, RMS radius, and mean speed.
 
 ### 2D Flocking & Leadership Explorer
 
-The current browser experiment lives at [`experiments/2d-flocking/`](./experiments/2d-flocking/).
+The original browser experiment lives at [`experiments/2d-flocking/`](./experiments/2d-flocking/).
 
 It includes:
 - Alignment, cohesion, and separation with independent controls.
@@ -22,7 +26,8 @@ The previous hosted preview remains available at [The Flock Lab on Nova Projects
 
 ## Repository map
 
-- `experiments/2d-flocking/` — current 2D interactive sandbox and experiment notes.
+- `experiments/2d-flocking/` — original 2D interactive sandbox and experiment notes.
+- `experiments/3d-flocking/` — 3D CPU simulation, observer camera, and controls.
 - `docs/behavior-model.md` — behavior model, steering layers, and current assumptions.
 - `docs/roadmap.md` — staged direction for 3D and GPU-accelerated work.
 - `references/README.md` — related projects and technical references.
@@ -35,18 +40,18 @@ The previous hosted preview remains available at [The Flock Lab on Nova Projects
 4. Separate behavior from simulation scale and rendering. A 2D CPU prototype, a 3D CPU prototype, and a WebGPU implementation should share concepts without being forced into one architecture.
 5. Preserve working experiments and their notes. This repository is the long-term home for the work.
 
-## Run the current 2D experiment
+## Run the experiments
 
-No build step or external dependency is required. Open `experiments/2d-flocking/index.html` in a modern browser, or serve the repository root locally:
+Both experiments are buildless and have no external dependencies. Serve the repository root locally.
 
 ```bash
 python -m http.server 8000
 ```
 
-Then visit `http://localhost:8000/experiments/2d-flocking/`.
+Visit `http://localhost:8000/` to choose an experiment, or go directly to `http://localhost:8000/experiments/3d-flocking/`.
 
 ## 3D direction
 
-The 3D work will extend agent state and neighborhood behavior into XYZ space, then explore GPU compute and rendering. The existing [WebGPU Particle Lab](https://github.com/apolito53/web-gpu-lab) is a technical reference for raw WebGPU compute, WGSL, storage buffers, 3D projection, trails, profiling, and large particle workloads. It is a reference point, not a claim that its current particle simulation already implements flocking.
+The CPU prototype extends agent state and neighborhood behavior into XYZ space. GPU compute and rendering remain a future scaling experiment. The existing [WebGPU Particle Lab](https://github.com/apolito53/web-gpu-lab) is a technical reference for raw WebGPU compute, WGSL, storage buffers, 3D projection, trails, profiling, and large particle workloads. It is a reference point, not a claim that its current particle simulation already implements flocking.
 
 See [the roadmap](./docs/roadmap.md) before choosing the next implementation step.
