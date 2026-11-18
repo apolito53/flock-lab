@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Observe a flock in three dimensions. Orbit its flight, change the local rules, and trace the pull of a single leader."
+    />
+    <meta name="theme-color" content="#101819" />
+    <title>Swarm observatory · Flock Lab</title>
+    <link rel="stylesheet" href="observatory.css" />
+  </head>
+  <body>
+    <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="i-pause" viewBox="0 0 20 20"><path d="M7 4v12M13 4v12" stroke-width="2.7" /></symbol>
+      <symbol id="i-play" viewBox="0 0 20 20">
+        <path d="m6 3 10 7-10 7z" fill="currentColor" stroke="none" />
+      </symbol>
+      <symbol id="i-scatter" viewBox="0 0 20 20">
+        <path d="m4 4 4 4m-4-1V4h3m6 0h3v3m0-3-4 4m4 5v3h-3m3 0-4-4m-5 4H4v-3m0 3 4-4" />
+      </symbol>
+      <symbol id="i-reset" viewBox="0 0 20 20">
+        <path d="M4.4 8a6.2 6.2 0 1 1 .8 6.1M4 3.8v4.8h4.8" />
+      </symbol>
+      <symbol id="i-orbit" viewBox="0 0 20 20">
+        <ellipse cx="10" cy="10" rx="8" ry="4" transform="rotate(-36 10 10)" />
+        <circle cx="10" cy="10" r="1.7" fill="currentColor" stroke="none" />
+      </symbol>
+      <symbol id="i-top" viewBox="0 0 20 20"><path d="m3.5 10 6.5-5 6.5 5-6.5 5z" /></symbol>
+      <symbol id="i-side" viewBox="0 0 20 20"><path d="M3.5 6h13v8h-13zM4 11h12" /></symbol>
+      <symbol id="i-sliders" viewBox="0 0 20 20">
+        <path d="M3 6h6m4 0h4M3 14h2m4 0h8" />
+        <circle cx="11" cy="6" r="2.2" />
+        <circle cx="7" cy="14" r="2.2" />
+      </symbol>
+      <symbol id="i-trails" viewBox="0 0 20 20"><path d="M2 6h9M5 10h8M2 14h5m5 1 5-5-5-5" /></symbol>
+      <symbol id="i-flock" viewBox="0 0 26 26">
+        <path
+          d="m2 13 11-8-6 12-1.2-4zm8.5 1L24 3l-7 15-1.5-5.4zM9 19.7l8-4.6-5.2 8.4-.7-3.6z"
+          fill="currentColor"
+          stroke="none"
+        />
+      </symbol>
+    </svg>
+    <header class="masthead">
+      <div class="masthead-inner">
+        <a class="brand" href="../../"
+          ><svg aria-hidden="true"><use href="#i-flock" /></svg><span>Flock Lab</span></a
+        >
+        <nav aria-label="Switch experiment">
+          <a href="../2d-flocking/">2D field</a><a href="./" aria-current="page">3D volume</a>
+        </nav>
+      </div>
+    </header>
+    <main>
+      <div class="page-heading">
+        <div>
+          <h1>Swarm observatory</h1>
+          <p>An autonomous flock in zero gravity. Change one rule and watch the turn travel.</p>
+        </div>
+        <div class="actions">
+          <button id="scatter" type="button" title="Apply a single outward impulse to the flock">
+            <svg aria-hidden="true"><use href="#i-scatter" /></svg>Scatter
+          </button>
+          <button id="pause" type="button" class="primary" aria-pressed="false">
+            <svg aria-hidden="true"><use id="pause-icon" href="#i-pause" /></svg
+            ><span id="pause-text">Pause</span>
+          </button>
+        </div>
+      </div>
+      <div class="workbench">
+        <section class="instrument" aria-label="Swarm observation volume">
+          <div class="field">
+            <canvas
+              id="space"
+              tabindex="0"
+              aria-describedby="camera-help"
+              aria-label="Live three-dimensional flock. Arrow keys orbit, Shift and arrows pan, plus and minus zoom, and Home restores the overview."
+              >This experiment uses a canvas to display the flock.</canvas
+            >
+            <div class="field-status">
+              <span class="lamp"></span><span id="live-state">Live</span
+              ><span class="time" id="clock">00:00</span>
+            </div>
+            <div class="legend">
+              <span><i class="agent-key"></i>Flock</span
+              ><span id="leader-key"><i class="leader-key"></i>Leader</span>
+            </div>
+          </div>
+          <div class="viewbar">
+            <div class="views" role="group" aria-label="Observation angle">
+              <button
+                type="button"
+                data-view="orbit"
+                aria-pressed="true"
+                title="Restore the default orbit view"
+              >
+                <svg aria-hidden="true"><use href="#i-orbit" /></svg>Orbit
+              </button>
+              <button type="button" data-view="top" aria-pressed="false">
+                <svg aria-hidden="true"><use href="#i-top" /></svg>Top
+              </button>
+              <button type="button" data-view="side" aria-pressed="false">
+                <svg aria-hidden="true"><use href="#i-side" /></svg>Side
+              </button>
+            </div>
+            <button id="trails" type="button" aria-pressed="true" title="Toggle recent flight paths">
+              <svg aria-hidden="true"><use href="#i-trails" /></svg>Trails<span
+                class="toggle-lamp"
+                aria-hidden="true"
+              ></span>
+            </button>
+          </div>
+          <div class="metrics" aria-label="Live flock measurements">
+            <div
+              title="Agreement of individual heading vectors. 100% means every agent heads in the same direction."
+            >
+              <span class="metric-label">Heading agreement</span>
+              <div class="measure">
+                <strong id="agreement">—</strong
+                ><canvas id="history" aria-label="Recent heading agreement over simulation time"></canvas>
+              </div>
+            </div>
+            <div title="Root-mean-square distance from the flock center, in simulation units">
+              <span class="metric-label">Flock radius</span>
+              <div class="measure"><strong id="mean-radius">—</strong><small>u</small></div>
+            </div>
+            <div title="Average distance traveled by one agent per simulation second">
+              <span class="metric-label">Mean speed</span>
+              <div class="measure"><strong id="mean-speed">—</strong><small>u/s</small></div>
+            </div>
+          </div>
+        </section>
+        <aside class="panel" aria-labelledby="panel-title">
+          <div class="panel-head">
+            <h2 id="panel-title">
+              <svg aria-hidden="true"><use href="#i-sliders" /></svg>Flock dynamics
+            </h2>
+            <button id="reset" type="button" title="Replay the same starting flock with current settings">
+              <svg aria-hidden="true"><use href="#i-reset" /></svg>Replay
+            </button>
+          </div>
+          <div class="panel-group population">
+            <label for="population">Agents<output for="population" id="out-population">224</output></label>
+            <input type="range" id="population" min="32" max="480" step="16" value="224" />
+          </div>
+          <div class="panel-group rules">
+            <h3>Local rules</h3>
+            <div class="slider" title="Match the velocity of nearby agents">
+              <label for="alignment">Alignment<output for="alignment" id="out-alignment">68%</output></label
+              ><input type="range" id="alignment" min="0" max="100" value="68" />
+            </div>
+            <div class="slider" title="Steer toward the center of nearby agents">
+              <label for="cohesion">Cohesion<output for="cohesion" id="out-cohesion">58%</output></label
+              ><input type="range" id="cohesion" min="0" max="100" value="58" />
+            </div>
+            <div class="slider" title="Give nearby agents personal space">
+              <label for="separation"
+                >Separation<output for="separation" id="out-separation">82%</output></label
+              ><input type="range" id="separation" min="0" max="100" value="82" />
+            </div>
+          </div>
+          <div class="panel-group leadership">
+            <div class="group-heading">
+              <h3>Leadership</h3>
+              <label class="switch" title="Give one agent an autonomous flight path"
+                ><span class="sr-only">Enable leader</span><input type="checkbox" id="leader" checked /><i
+                  aria-hidden="true"
+                ></i
+              ></label>
+            </div>
+            <fieldset id="leader-controls">
+              <legend class="sr-only">Leader controls</legend>
+              <div class="slider" title="Inward force toward the gold leader">
+                <label for="gravity"
+                  >Leader gravity<output for="gravity" id="out-gravity">72%</output></label
+                ><input type="range" id="gravity" min="0" max="100" value="72" />
+              </div>
+              <div class="slider" title="Spherical range of the leader’s attraction">
+                <label for="radius"
+                  >Influence radius<output for="radius" id="out-radius">92 u</output></label
+                ><input type="range" id="radius" min="10" max="150" step="2" value="92" />
+              </div>
+              <label
+                class="check"
+                title="Smooth the leader’s steering. Followers always retain their own inertia."
+                ><input type="checkbox" id="momentum" checked />Leader momentum</label
+              >
+              <label class="check" title="Show the spherical reach of the gravity force"
+                ><input type="checkbox" id="sphere" />Show influence sphere</label
+              >
+            </fieldset>
+          </div>
+        </aside>
+      </div>
+      <p class="camera-help" id="camera-help">
+        <span class="desktop-help">Drag to orbit <b>·</b> Shift-drag to pan <b>·</b> Scroll to zoom</span
+        ><span class="touch-help">Drag to orbit <b>·</b> Two fingers to pan and zoom</span>
+      </p>
+    </main>
+    <script type="module" src="observatory.mjs"></script>
+  </body>
+</html>

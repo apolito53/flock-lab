@@ -12,6 +12,8 @@ The roadmap is exploratory. Each stage should produce a playable, measurable exp
 
 ## 2. Build a 3D CPU prototype
 
+The [3D Swarm Observatory](../experiments/3d-flocking/) implements this stage as an external observation experiment.
+
 - Extend position, velocity, heading, and steering vectors from XY to XYZ.
 - Add a camera that can orbit, pan, zoom, and inspect the swarm from any angle.
 - Give leader gravity a spherical influence volume.
