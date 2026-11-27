@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b111f" />
+    <meta
+      name="description"
+      content="Observe two autonomous starfighter fleets at the Pale Sun wreck. Give Meridian a wing order and watch the fight from any angle."
+    />
+    <title>Crosswake · Flock Lab</title>
+    <link rel="stylesheet" href="crosswake.css" />
+  </head>
+  <body>
+    <svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="flock" viewBox="0 0 26 26">
+        <path
+          d="m2 13 11-8-6 12-1.2-4zm8.5 1L24 3l-7 15-1.5-5.4zM9 19.7l8-4.6-5.2 8.4-.7-3.6z"
+          fill="currentColor"
+          stroke="none"
+        />
+      </symbol>
+      <symbol id="meridian" viewBox="0 0 32 32">
+        <path d="m16 2 13 25-10-5-3 7-3-7-10 5z" fill="currentColor" stroke="none" />
+        <path d="m16 8 1.2 12-1.2 4-1.2-4z" fill="#122433" stroke="none" />
+      </symbol>
+      <symbol id="vesper" viewBox="0 0 32 32">
+        <path d="m5 4 8 11 3-9 3 9 8-11-2 16-9 9-9-9z" fill="currentColor" stroke="none" />
+        <path d="m16 16 2 5-2 4-2-4z" fill="#271c37" stroke="none" />
+      </symbol>
+      <symbol id="sound-icon" viewBox="0 0 20 20"><path d="M3 8h4l5-4v12l-5-4H3zM15 7q3 3 0 6" /></symbol>
+      <symbol id="mute-icon" viewBox="0 0 20 20">
+        <path d="M2 8h4l5-4v12l-5-4H2zM14 8l4 4m0-4-4 4" />
+      </symbol>
+      <symbol id="pause-icon" viewBox="0 0 20 20"><path d="M7 4v12m6-12v12" stroke-width="2.8" /></symbol>
+      <symbol id="play-icon" viewBox="0 0 20 20">
+        <path d="m6 3 10 7-10 7z" fill="currentColor" stroke="none" />
+      </symbol>
+      <symbol id="replay-icon" viewBox="0 0 20 20">
+        <path d="M4.4 8a6.2 6.2 0 1 1 .8 6.1M4 3.8v4.8h4.8" />
+      </symbol>
+      <symbol id="trails-icon" viewBox="0 0 20 20"><path d="m3 7 10-2M2 11l13-2m-9 6 11-2" /></symbol>
+    </svg>
+    <main class="game">
+      <header class="mast">
+        <div class="identity">
+          <a class="brand" href="../../"
+            ><svg aria-hidden="true"><use href="#flock" /></svg>Flock Lab</a
+          ><span class="divider" aria-hidden="true"></span>
+          <h1>Crosswake</h1>
+        </div>
+        <nav aria-label="Game navigation">
+          <a href="../3d-flocking/"><span class="nav-prefix">Swarm </span>observatory</a
+          ><button
+            id="sound"
+            type="button"
+            aria-label="Sound"
+            aria-pressed="false"
+            title="Toggle combat audio"
+          >
+            <svg aria-hidden="true"><use id="audio-glyph" href="#mute-icon" /></svg
+            ><span id="audio-text">Sound off</span>
+          </button>
+        </nav>
+      </header>
+      <section class="arena" aria-label="Starfighter battle at the Pale Sun wreck">
+        <canvas
+          id="battlefield"
+          tabindex="0"
+          aria-label="Three-dimensional fleet battle. Arrow keys orbit. Shift and arrows pan. Plus and minus zoom. Home resets the view."
+          aria-describedby="camera-hint"
+          >Crosswake needs canvas support to show the battle.</canvas
+        >
+        <div class="scoreboard">
+          <div class="fleet meridian">
+            <svg class="crest" aria-hidden="true"><use href="#meridian" /></svg>
+            <div class="fleet-info">
+              <div class="fleet-title">
+                <h2>Meridian</h2>
+                <strong id="count-0">18</strong>
+              </div>
+              <div id="pips-0" class="pips" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="battle-time"><span id="status">Engagement</span><time id="clock">00:00</time></div>
+          <div class="fleet vesper">
+            <svg class="crest" aria-hidden="true"><use href="#vesper" /></svg>
+            <div class="fleet-info">
+              <div class="fleet-title">
+                <h2>Vesper</h2>
+                <strong id="count-1">18</strong>
+              </div>
+              <div id="pips-1" class="pips" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+        <div class="scene-bottom">
+          <div class="place">
+            <strong>Pale Sun wreck</strong
+            ><span id="camera-hint"
+              ><span class="mouse">Drag to orbit · Scroll to zoom</span
+              ><span class="touch">Drag to orbit · Pinch to zoom</span></span
+            >
+          </div>
+          <div class="camera-controls">
+            <div class="angles" role="group" aria-label="Camera angle">
+              <button
+                type="button"
+                data-view="orbit"
+                aria-pressed="true"
+                title="Restore the orbit camera"
+              >
+                Orbit</button
+              ><button type="button" data-view="top" aria-pressed="false">Top</button
+              ><button type="button" data-view="side" aria-pressed="false">Side</button>
+            </div>
+            <button
+              id="trails"
+              type="button"
+              aria-label="Flight trails"
+              aria-pressed="true"
+              title="Toggle flight trails"
+            >
+              <svg aria-hidden="true"><use href="#trails-icon" /></svg>
+            </button>
+          </div>
+        </div>
+        <div id="result" class="result" hidden>
+          <div role="status">
+            <p id="result-title"></p>
+            <span id="result-detail"></span>
+            <div class="result-buttons">
+              <button type="button" data-restart="replay">Replay battle</button
+              ><button class="accent" type="button" data-restart="new">New battle</button>
+            </div>
+          </div>
+        </div>
+      </section>
+      <div class="deck">
+        <section class="orders" aria-labelledby="orders-heading">
+          <div class="deck-heading">
+            <h2 id="orders-heading">Meridian orders</h2>
+            <span id="order-description" aria-live="polite">Wings pursue enemy fighters.</span>
+          </div>
+          <div class="orders-row" role="group" aria-label="Order Meridian wings">
+            <button type="button" data-order="engage" aria-pressed="true" title="Pursue enemy contacts">
+              <kbd>1</kbd> Engage</button
+            ><button
+              type="button"
+              data-order="split"
+              aria-pressed="false"
+              title="Fan the wings into high and low passes"
+            >
+              <kbd>2</kbd> Split wings</button
+            ><button
+              type="button"
+              data-order="rally"
+              aria-pressed="false"
+              title="Regroup and recharge shields. Weapons hold fire."
+            >
+              <kbd>3</kbd> Rally
+            </button>
+          </div>
+        </section>
+        <section class="playback" aria-label="Battle playback">
+          <div class="deck-heading"><h2>Playback</h2></div>
+          <div class="play-row">
+            <button id="pause" type="button" aria-pressed="false">
+              <svg aria-hidden="true"><use id="play-glyph" href="#pause-icon" /></svg
+              ><span id="play-text">Pause</span></button
+            ><label class="speed"
+              ><span class="sr-only">Playback speed</span
+              ><select id="speed">
+                <option value="0.5">½×</option>
+                <option value="1" selected>1×</option>
+                <option value="2">2×</option>
+              </select></label
+            ><button
+              type="button"
+              data-restart="replay"
+              aria-label="Replay this encounter"
+              title="Replay the same starting formation"
+            >
+              <svg aria-hidden="true"><use href="#replay-icon" /></svg
+              ><span class="replay-text">Replay</span></button
+            ><button type="button" data-restart="new" title="Start a new seeded encounter">
+              New battle
+            </button>
+          </div>
+        </section>
+      </div>
+      <noscript>Enable JavaScript to run the fleet simulation.</noscript>
+    </main>
+    <script type="module" src="crosswake.mjs"></script>
+  </body>
+</html>

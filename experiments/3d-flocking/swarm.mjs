@@ -19,7 +19,7 @@ const ROUTE_RATE = 0.235;
 const START_PHASE = 0.68;
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
-function randomGenerator(seed) {
+export function randomGenerator(seed) {
   return () => {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     return seed / 4294967296;
@@ -37,7 +37,7 @@ function route(t) {
   };
 }
 
-function recordTrail(bird) {
+export function recordTrail(bird) {
   bird.trailHead = (bird.trailHead + 1) % TRAIL_SAMPLES;
   const offset = bird.trailHead * 3;
   bird.trail[offset] = bird.x;
@@ -55,6 +55,65 @@ export function gravityGain(distance, radius) {
   if (distance <= 0 || distance >= radius) return 0;
   const t = distance / radius;
   return (1 - t * t * (3 - 2 * t)) * Math.min(1, distance / 15);
+}
+
+// Accumulate each pair from the same position and velocity snapshot.
+export function collectNeighbors(birds) {
+  for (const b of birds) {
+    b.neighbors = 0;
+    b.dx = b.dy = b.dz = b.dvx = b.dvy = b.dvz = b.sx = b.sy = b.sz = 0;
+  }
+  for (let i = 1; i < birds.length; i++) {
+    const a = birds[i];
+    for (let j = 0; j < i; j++) {
+      const b = birds[j];
+      const dx = b.x - a.x,
+        dy = b.y - a.y,
+        dz = b.z - a.z;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 >= NEIGHBOR_RADIUS * NEIGHBOR_RADIUS) continue;
+      a.neighbors++;
+      b.neighbors++;
+      a.dx += dx;
+      a.dy += dy;
+      a.dz += dz;
+      b.dx -= dx;
+      b.dy -= dy;
+      b.dz -= dz;
+      const vx = b.vx - a.vx,
+        vy = b.vy - a.vy,
+        vz = b.vz - a.vz;
+      a.dvx += vx;
+      a.dvy += vy;
+      a.dvz += vz;
+      b.dvx -= vx;
+      b.dvy -= vy;
+      b.dvz -= vz;
+      if (d2 >= PERSONAL_SPACE * PERSONAL_SPACE || d2 < 1e-8) continue;
+      const distance = Math.sqrt(d2);
+      const weight = (1 - distance / PERSONAL_SPACE) / distance;
+      const sx = dx * weight,
+        sy = dy * weight,
+        sz = dz * weight;
+      a.sx -= sx;
+      a.sy -= sy;
+      a.sz -= sz;
+      b.sx += sx;
+      b.sy += sy;
+      b.sz += sz;
+    }
+  }
+}
+
+export function localSteering(b, cfg) {
+  const neighbors = b.neighbors || 1;
+  const align = (cfg.alignment * 1.15) / neighbors;
+  const cohere = (cfg.cohesion * 0.7) / neighbors;
+  const separate = cfg.separation * 16;
+  const ax = b.dvx * align + b.dx * cohere + b.sx * separate + wallForce(b.x, BOUNDS.x);
+  const ay = b.dvy * align + b.dy * cohere + b.sy * separate + wallForce(b.y, BOUNDS.y);
+  const az = b.dvz * align + b.dz * cohere + b.sz * separate + wallForce(b.z, BOUNDS.z);
+  return { ax, ay, az };
 }
 
 export class Swarm {
@@ -137,53 +196,8 @@ export class Swarm {
     }
   }
 
-  // Each pair contributes once, from the same snapshot. Commit all velocities together below.
   collectNeighbors() {
-    const birds = this.birds;
-    for (const b of birds) {
-      b.neighbors = 0;
-      b.dx = b.dy = b.dz = b.dvx = b.dvy = b.dvz = b.sx = b.sy = b.sz = 0;
-    }
-    for (let i = 1; i < birds.length; i++) {
-      const a = birds[i];
-      for (let j = 0; j < i; j++) {
-        const b = birds[j];
-        const dx = b.x - a.x,
-          dy = b.y - a.y,
-          dz = b.z - a.z;
-        const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 >= NEIGHBOR_RADIUS * NEIGHBOR_RADIUS) continue;
-        a.neighbors++;
-        b.neighbors++;
-        a.dx += dx;
-        a.dy += dy;
-        a.dz += dz;
-        b.dx -= dx;
-        b.dy -= dy;
-        b.dz -= dz;
-        const vx = b.vx - a.vx,
-          vy = b.vy - a.vy,
-          vz = b.vz - a.vz;
-        a.dvx += vx;
-        a.dvy += vy;
-        a.dvz += vz;
-        b.dvx -= vx;
-        b.dvy -= vy;
-        b.dvz -= vz;
-        if (d2 >= PERSONAL_SPACE * PERSONAL_SPACE || d2 < 1e-8) continue;
-        const distance = Math.sqrt(d2);
-        const weight = (1 - distance / PERSONAL_SPACE) / distance;
-        const sx = dx * weight,
-          sy = dy * weight,
-          sz = dz * weight;
-        a.sx -= sx;
-        a.sy -= sy;
-        a.sz -= sz;
-        b.sx += sx;
-        b.sy += sy;
-        b.sz += sz;
-      }
-    }
+    collectNeighbors(this.birds);
   }
 
   step(dt = STEP) {
@@ -204,13 +218,7 @@ export class Swarm {
         b.nz = b.vz + (vz * limit - b.vz) * blend;
         continue;
       }
-      const neighbors = b.neighbors || 1;
-      const align = (cfg.alignment * 1.15) / neighbors;
-      const cohere = (cfg.cohesion * 0.7) / neighbors;
-      const separate = cfg.separation * 16;
-      let ax = b.dvx * align + b.dx * cohere + b.sx * separate + wallForce(b.x, BOUNDS.x);
-      let ay = b.dvy * align + b.dy * cohere + b.sy * separate + wallForce(b.y, BOUNDS.y);
-      let az = b.dvz * align + b.dz * cohere + b.sz * separate + wallForce(b.z, BOUNDS.z);
+      let { ax, ay, az } = localSteering(b, cfg);
       if (leader && cfg.gravity > 0) {
         const dx = leader.x - b.x,
           dy = leader.y - b.y,
