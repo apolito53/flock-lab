@@ -6,6 +6,10 @@ Flock Lab is a place to investigate how many independent agents can produce cohe
 
 ## Current experiments
 
+### Crosswake
+
+[Play Crosswake](./experiments/fleet-combat/). Watch 18 Meridian fighters meet 18 Vesper fighters around the wreck of the Pale Sun. Each fleet flies in three autonomous wings using the observatory’s flocking model. Order Meridian to engage, split wings, or rally to recharge shields. Orbit, pause, or replay the same starting encounter.
+
 ### 3D Swarm Observatory
 
 [Enter the 3D experiment](./experiments/3d-flocking/). The observation camera orbits, pans, and zooms around autonomous XYZ boids. Top and side views use orthographic projection. A single leader flies a climbing figure-eight. Its spherical gravity has adjustable strength and range. Disable leadership for a local-rules baseline, or disable only the leader’s momentum to compare its steering. Pause, scatter, replay the seed, or inspect world-space trails and the live heading agreement, RMS radius, and mean speed.
@@ -28,6 +32,7 @@ The previous hosted preview remains available at [The Flock Lab on Nova Projects
 
 - `experiments/2d-flocking/` — original 2D interactive sandbox and experiment notes.
 - `experiments/3d-flocking/` — 3D CPU simulation, observer camera, and controls.
+- `experiments/fleet-combat/` — observer-controlled starfighter skirmishes.
 - `docs/behavior-model.md` — behavior model, steering layers, and current assumptions.
 - `docs/roadmap.md` — staged direction for 3D and GPU-accelerated work.
 - `references/README.md` — related projects and technical references.
@@ -42,7 +47,7 @@ The previous hosted preview remains available at [The Flock Lab on Nova Projects
 
 ## Run the experiments
 
-Both experiments are buildless and have no external dependencies. Serve the repository root locally.
+The experiments are buildless and have no external dependencies. Serve the repository root locally.
 
 ```bash
 python -m http.server 8000
